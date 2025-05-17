@@ -1,4 +1,3 @@
-use super::VERSION;
 use log::{debug, error, info, warn};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -45,7 +44,7 @@ impl Configurations {
             working_directory: CWD.into(),
             destination_directory: CWD.into(),
             configuration_file: PathBuf::new(),
-            version: VERSION.to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
         }
     }
 
