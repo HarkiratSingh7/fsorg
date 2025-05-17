@@ -1,3 +1,4 @@
+use super::VERSION;
 use log::{debug, error, info, warn};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -29,7 +30,11 @@ pub struct Configurations {
 
     /// Configurations file path
     /// Default value be a current working directory
+    #[serde(skip)]
     configuration_file: PathBuf,
+
+    /// Version for future usage
+    version: String,
 }
 
 impl Configurations {
@@ -40,6 +45,7 @@ impl Configurations {
             working_directory: CWD.into(),
             destination_directory: CWD.into(),
             configuration_file: PathBuf::new(),
+            version: VERSION.to_string(),
         }
     }
 
