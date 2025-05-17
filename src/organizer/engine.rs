@@ -1,11 +1,13 @@
 use super::configurations::Configurations;
-use super::move_file_safely;
+use super::{FAIL_CONFIG_FILE, get_home_dir, move_file_safely};
 use log::error;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-const DEFAULT_CONFIG_FILE: &str = "fsorg.json";
+fn get_config_file_path() -> Option<PathBuf> {
+    get_home_dir().map(|d| d.join(".fsorg.json"))
+}
 
 /// Engine - The main file organiser module
 pub struct Engine {
@@ -27,7 +29,10 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             configurations: Configurations::new(),
-            config_file: PathBuf::from(DEFAULT_CONFIG_FILE),
+            config_file: match get_config_file_path() {
+                Some(home_dir) => home_dir,
+                None => PathBuf::from(FAIL_CONFIG_FILE),
+            },
             total_files_scanned: 0,
             total_files_moved: 0,
             total_files_skipped: 0,
@@ -70,6 +75,18 @@ impl Engine {
 
     pub fn get_total_files_errors(&self) -> u32 {
         self.total_files_errors
+    }
+
+    pub fn retrieve_rules(&self) -> Vec<(String, String)> {
+        self.configurations.view_rules()
+    }
+
+    pub fn add_rule(&mut self, pattern: &str, destination: &str) {
+        self.configurations.add_dynamic_rule(pattern, destination);
+    }
+
+    pub fn delete_rule(&mut self, pattern: &str) {
+        self.configurations.delete_dynamic_rule(pattern);
     }
 
     /// Organizes the files based on the configurations loaded

@@ -1,10 +1,22 @@
 pub mod configurations;
 pub mod engine;
-
 use log::error;
+use std::env;
 use std::fs;
 use std::io::ErrorKind;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+const FAIL_CONFIG_FILE: &str = "fsorg.json";
+
+pub fn get_home_dir() -> Option<PathBuf> {
+    env::var(if cfg!(target_os = "windows") {
+        "USERPROFILE"
+    } else {
+        "HOME"
+    })
+    .ok()
+    .map(PathBuf::from)
+}
 
 fn move_file_safely(from: &Path, to: &Path) -> std::io::Result<()> {
     if let Some(parent_dir) = to.parent() {

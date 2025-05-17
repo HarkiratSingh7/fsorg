@@ -60,6 +60,44 @@ impl Configurations {
         self.destination_directory = directory;
     }
 
+    pub fn view_rules(&self) -> Vec<(String, String)> {
+        self.rules
+            .iter()
+            .map(|(pattern, destination)| (pattern.clone(), destination.clone()))
+            .collect()
+    }
+
+    pub fn add_dynamic_rule(&mut self, pattern: &str, destination: &str) {
+        match Regex::new(pattern) {
+            Ok(regex) => {
+                self.rules
+                    .insert(pattern.to_string(), destination.to_string());
+                self.compiled_rules.push((regex, destination.to_string()));
+                self.store_configurations();
+            }
+            Err(err) => {
+                error!(
+                    "Failed to compile the regex {} for {}: {}",
+                    pattern, destination, err
+                );
+            }
+        }
+    }
+
+    pub fn delete_dynamic_rule(&mut self, pattern: &str) {
+        match Regex::new(pattern) {
+            Ok(regex) => {
+                self.rules.retain(|r, _| r != pattern);
+                self.compiled_rules
+                    .retain(|(r, _)| r.as_str() != regex.as_str());
+                self.store_configurations();
+            }
+            Err(err) => {
+                error!("Failed to find the regex {}: {}", pattern, err);
+            }
+        }
+    }
+
     fn compile_regexes(&mut self) {
         self.compiled_rules = self
             .rules
@@ -98,7 +136,8 @@ impl Configurations {
     }
 
     pub fn load_configurations(&mut self, config_file: PathBuf) {
-        match File::open(&config_file) {
+        self.configuration_file = config_file;
+        match File::open(&self.configuration_file) {
             Ok(fp) => {
                 match serde_json::from_reader::<BufReader<File>, Configurations>(BufReader::new(fp))
                 {
@@ -118,7 +157,6 @@ impl Configurations {
             }
             Err(_) => {
                 self.seed_configurations();
-                self.configuration_file = config_file;
                 self.store_configurations();
             }
         }
@@ -137,6 +175,26 @@ impl Configurations {
                 r"(?i)^.*\.(pdf|docx?|xlsx?|pptx?|odt|ods|txt|rtf|csv|md)$".to_string(),
                 "Documents".to_string(),
             ),
+            (
+                "(?i)^.*\\.(mp4|mkv|flv|avi|mov)$".to_string(),
+                "Videos".to_string(),
+            ),
+            (
+                "(?i)^.*\\.(mp3|wav|ogg|flac)$".to_string(),
+                "Music".to_string(),
+            ),
+            (
+                "(?i)^.*\\.(zip|rar|7z|tar\\.gz|tar\\.bz2)$".to_string(),
+                "Archives".to_string(),
+            ),
+            (
+                "(?i)^.*\\.(exe|msi|deb|rpm|sh|bat)$".to_string(),
+                "Installers".to_string(),
+            ),
+            (
+                "(?i)^.*\\.(rs|cpp|c|h|hpp|py|java|go|rb|cs|swift)$".to_string(),
+                "Code".to_string(),
+            ),
         ]);
         debug!("Default configurations loaded: {:?}", self.rules);
     }
@@ -151,7 +209,11 @@ impl Configurations {
                 },
                 Err(err) => error!("Unable to serialize the configurations: {} !", err),
             },
-            Err(err) => error!("Unable to open file for writing configurations: {} !", err),
+            Err(err) => error!(
+                "Unable to open file: {} for writing configurations: {} !",
+                self.configuration_file.display(),
+                err
+            ),
         }
     }
 }
