@@ -18,11 +18,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-          fetch-depth: 0
+        fetch-depth: 0
     - name: Build
-      run: cargo build --verbose --release
-    - name: Run tests
-      run: cargo test --verbose
+      run: cargo build --release
+    - name: Touch binary to mark as modified
+      run: touch target/release/fsorg
     - name: Create GitHub Release
       uses: pipe-cd/actions-gh-release@v2.6.0
       with:

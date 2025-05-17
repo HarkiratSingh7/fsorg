@@ -54,6 +54,8 @@ fn main() {
 }
 
 fn usage() {
+    println!("Authors: {}", env!("CARGO_PKG_AUTHORS"));
+    println!("Version: {}", env!("CARGO_PKG_VERSION"));
     println!(
         "fsorg [OPTIONS]\n\
               Organizes the files according to user's rules based on regex file name matching.\n\n\
@@ -62,6 +64,4 @@ fn usage() {
               --source-dir | -s      \tSource directory containing unorganised files. (By default it is current working directory).\n\n\
               --destination-dir | -d \tDestination where to place the organized files. (By default it is current working directory).\n\n"
     );
-    println!("Authors: {}", env!("CARGO_PKG_AUTHORS"));
-    println!("Version: {}", env!("CARGO_PKG_VERSION"));
 }
