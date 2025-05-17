@@ -62,4 +62,6 @@ fn usage() {
               --source-dir | -s      \tSource directory containing unorganised files. (By default it is current working directory).\n\n\
               --destination-dir | -d \tDestination where to place the organized files. (By default it is current working directory).\n\n"
     );
+    println!("Authors: {}", env!("CARGO_PKG_AUTHORS"));
+    println!("Version: {}", env!("CARGO_PKG_VERSION"));
 }
