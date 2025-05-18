@@ -1,28 +1,31 @@
 mod organizer;
 use log::error;
+use organizer::actions::Actions;
 use organizer::engine::Engine;
 use std::env;
 use std::path::PathBuf;
 
-enum Action<'a> {
+enum UserAction<'a> {
     AddRule(&'a str, &'a str),
     DeleteRule(&'a str),
     ViewRule,
     Organise,
+    ExportPlan(&'a str),
+    ExecutePlan(&'a str),
 }
 
 fn main() {
     env_logger::init();
 
     let mut engine = Engine::new();
-    let mut action = Action::Organise;
+    let mut action = UserAction::Organise;
 
     let mut last_argument = String::new();
     let mut last_utilized = true;
     let arguments: Vec<String> = env::args().skip(1).collect();
     for argument in &arguments {
         match argument.as_str() {
-            "-v" | "--view-rules" => action = Action::ViewRule,
+            "-v" | "--view-rules" => action = UserAction::ViewRule,
             "--help" | "-h" | "?" | "-?" => {
                 usage();
                 std::process::exit(0);
@@ -51,11 +54,13 @@ fn main() {
                                 std::process::exit(-1);
                             }
 
-                            action = Action::AddRule(rule_input[0], rule_input[1]);
+                            action = UserAction::AddRule(rule_input[0], rule_input[1]);
                         }
                         "-r" | "--remove-rule" => {
-                            action = Action::DeleteRule(argument.trim_matches([' ', '"']))
+                            action = UserAction::DeleteRule(argument.trim_matches([' ', '"']))
                         }
+                        "-p" | "--dry-run" => action = UserAction::ExportPlan(argument),
+                        "-x" | "--execute" => action = UserAction::ExecutePlan(argument),
                         _ => {
                             error!("Invalid argument: {}\n", argument);
                             usage();
@@ -76,21 +81,41 @@ fn main() {
 
     engine.load_configurations();
     match action {
-        Action::Organise => {
-            engine.organize();
-            println!("***");
-            println!("Total files scanned: {}", engine.get_total_files_scanned());
-            println!("Total files moved: {}", engine.get_total_files_moved());
-            println!("Total files skipped: {}", engine.get_total_files_skipped());
-            println!(
-                "Total errors encountered: {}",
-                engine.get_total_files_errors()
-            );
+        UserAction::Organise => {
+            let mut organising_actions = engine.generate_actions();
+            organising_actions.execute_actions();
+            print_statistics(&organising_actions);
         }
-        Action::ViewRule => only_print_rules(&engine),
-        Action::AddRule(pattern, destination) => engine.add_rule(pattern, destination),
-        Action::DeleteRule(pattern) => engine.delete_rule(pattern),
+        UserAction::ExportPlan(file_path) => {
+            let actions = engine.generate_actions();
+            match actions.export_actions(file_path) {
+                Ok(()) => println!("Action Plan has been exported to: {}", file_path),
+                Err(err) => {
+                    error!("An occurred while exporting the plan: {}", err);
+                    std::process::exit(-1);
+                }
+            }
+        }
+        UserAction::ExecutePlan(plan_path) => {
+            let mut actions = Actions::from(plan_path);
+            actions.execute_actions();
+            print_statistics(&actions);
+        }
+        UserAction::ViewRule => only_print_rules(&engine),
+        UserAction::AddRule(pattern, destination) => engine.add_rule(pattern, destination),
+        UserAction::DeleteRule(pattern) => engine.delete_rule(pattern),
     }
+}
+
+fn print_statistics(actions: &Actions) {
+    println!("***");
+    println!("Total files scanned: {}", actions.get_total_files_scanned());
+    println!("Total files moved: {}", actions.get_total_files_moved());
+    println!("Total files skipped: {}", actions.get_total_files_skipped());
+    println!(
+        "Total errors encountered: {}",
+        actions.get_total_files_errors()
+    );
 }
 
 fn usage() {
@@ -121,6 +146,14 @@ fn usage() {
     println!(
         "{:>left_width$} Views the current rules present in specified or default configs.",
         "--view-rules | -v"
+    );
+    println!(
+        "{:>left_width$} Creates an action plan for organising the files: fsorg [OTHER OPTIONS] -p plan1.txt",
+        "--dry-run | -p"
+    );
+    println!(
+        "{:>left_width$} Executes the provided plan: fsorg -x plan1.txt",
+        "--execute | -x"
     );
 }
 
