@@ -46,7 +46,7 @@ fsorg -r "(?i)^.*\.(mp3|wav|ogg|flac)$"
 ### Syntax
 ```
 Authors: Harkirat Singh (honey.harkirat@outlook.com)
-Version: 0.1.0
+Version: 1.0.0
 Syntax: fsorg [OPTIONS]
                  --config | -c Specify the json config file. By default the config is present at ~/.fsorg.json
              --source-dir | -s Source directory containing unorganised files. (By default it is current working directory).
@@ -54,6 +54,8 @@ Syntax: fsorg [OPTIONS]
                --add-rule | -a Adds a rule: fsorg -a "(?i)^.*\.(mp3|wav|ogg|flac)$", "Videos"
             --remove-rule | -r Removes a rule: fsorg -r "(?i)^.*\.(mp3|wav|ogg|flac)$"
              --view-rules | -v Views the current rules present in specified or default configs.
+                --dry-run | -p Creates an action plan for organising the files: fsorg [OTHER OPTIONS] -p plan1.txt
+                --execute | -x Executes the provided plan: fsorg -x plan1.txt
 ```
 
 ### Sample config
