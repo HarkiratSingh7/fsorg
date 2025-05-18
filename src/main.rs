@@ -158,8 +158,8 @@ fn usage() {
 }
 
 fn only_print_rules(engine: &Engine) {
-    let mut width_pat = 0;
-    let mut width_dest = 0;
+    let mut width_pat = 20;
+    let mut width_dest = 20;
     for (pat, dest) in engine.retrieve_rules() {
         width_pat = if width_pat < pat.len() {
             pat.len()
@@ -173,17 +173,17 @@ fn only_print_rules(engine: &Engine) {
         };
     }
 
-    println!("+{:-<width_pat$} | {:->width_dest$}+", "", "");
+    println!("+{:-<width_pat$} + {:->width_dest$}+", "", "");
     println!(
         "|{:<width_pat$} | {:>width_dest$}|",
         "Regex", "Destinations"
     );
     for (pattern, destination) in engine.retrieve_rules() {
-        println!("+{:-<width_pat$} | {:->width_dest$}+", "", "");
+        println!("+{:-<width_pat$} + {:->width_dest$}+", "", "");
         println!("|{:<width_pat$} | {:>width_dest$}|", pattern, destination);
     }
 
-    println!("+{:-<width_pat$} | {:->width_dest$}+", "", "");
+    println!("+{:-<width_pat$} + {:->width_dest$}+", "", "");
 
     std::process::exit(0);
 }
