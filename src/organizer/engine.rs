@@ -1,5 +1,6 @@
+use super::actions::Actions;
 use super::configurations::Configurations;
-use super::{FAIL_CONFIG_FILE, get_home_dir, move_file_safely};
+use super::{FAIL_CONFIG_FILE, get_home_dir};
 use log::error;
 use std::fs;
 use std::path::Path;
@@ -16,12 +17,6 @@ pub struct Engine {
 
     /// Points to config file
     config_file: PathBuf,
-
-    /// Statistics
-    total_files_scanned: u32,
-    total_files_moved: u32,
-    total_files_skipped: u32,
-    total_files_errors: u32,
 }
 
 impl Engine {
@@ -33,10 +28,6 @@ impl Engine {
                 Some(home_dir) => home_dir,
                 None => PathBuf::from(FAIL_CONFIG_FILE),
             },
-            total_files_scanned: 0,
-            total_files_moved: 0,
-            total_files_skipped: 0,
-            total_files_errors: 0,
         }
     }
 
@@ -61,22 +52,6 @@ impl Engine {
             .load_configurations(self.config_file.clone());
     }
 
-    pub fn get_total_files_scanned(&self) -> u32 {
-        self.total_files_scanned
-    }
-
-    pub fn get_total_files_moved(&self) -> u32 {
-        self.total_files_moved
-    }
-
-    pub fn get_total_files_skipped(&self) -> u32 {
-        self.total_files_skipped
-    }
-
-    pub fn get_total_files_errors(&self) -> u32 {
-        self.total_files_errors
-    }
-
     pub fn retrieve_rules(&self) -> Vec<(String, String)> {
         self.configurations.view_rules()
     }
@@ -89,8 +64,9 @@ impl Engine {
         self.configurations.delete_dynamic_rule(pattern);
     }
 
-    /// Organizes the files based on the configurations loaded
-    pub fn organize(&mut self) {
+    /// Generates actions
+    pub fn generate_actions(&self) -> Actions {
+        let mut actions = Actions::new();
         if let Ok(absolute_path) = fs::canonicalize(self.configurations.get_working_directory()) {
             match fs::read_dir(self.configurations.get_working_directory()) {
                 Ok(listings) => {
@@ -108,13 +84,13 @@ impl Engine {
                         }
 
                         // increment total files counter
-                        self.total_files_scanned += 1;
+                        actions.total_files_scanned += 1;
 
                         let file_name = match entry.file_name().and_then(|n| n.to_str()) {
                             Some(name) => name,
                             None => {
                                 // increment error counter
-                                self.total_files_errors += 1;
+                                actions.total_files_errors += 1;
                                 error!("Invalid file name: {}", entry.display());
                                 continue;
                             }
@@ -125,35 +101,17 @@ impl Engine {
                         {
                             let destination = Path::new(&destination).join(file_name);
                             let absolute_file_path = absolute_path.join(file_name);
-                            match move_file_safely(absolute_file_path.as_path(), &destination) {
-                                Ok(()) => {
-                                    // increment moved files counter
-                                    self.total_files_moved += 1;
-                                    println!(
-                                        "Moved file {} to {}",
-                                        file_name,
-                                        destination.display()
-                                    );
-                                }
-                                Err(err) => {
-                                    // increment error counter
-                                    self.total_files_errors += 1;
-                                    error!(
-                                        "An error occurred while moving file {} to {}: {}",
-                                        file_name,
-                                        destination.display(),
-                                        err
-                                    );
-                                }
-                            };
+                            actions.add_action(absolute_file_path, destination);
                         } else {
                             // increment skipped files counter
-                            self.total_files_skipped += 1;
+                            actions.total_files_skipped += 1;
                         }
                     }
                 }
                 Err(err) => error!("Error occurred while listing directory entries: {}", err),
             }
         }
+
+        actions
     }
 }
